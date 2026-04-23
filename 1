@@ -1,0 +1,86 @@
+def add_atms(n, k, L):
+    
+    # Функция для проверки, можно ли достичь целевого максимального расстояния
+    def can_achieve(target):
+        """Можно ли разбить все отрезки так, чтобы каждый был ≤ target?"""
+        needed = 0
+        for length in L:
+            # Сколько банкоматов нужно для этого отрезка?
+            # ceil(length / target) - 1, но вычисляем без ceil
+            needed += (length + target - 1) // target - 1
+        return needed <= k
+    
+    # Бинарный поиск минимального достижимого максимального расстояния
+    left, right = 1, max(L)
+    
+    while left < right:
+        mid = (left + right) // 2
+        if can_achieve(mid):
+            right = mid  # Можно достичь mid, пробуем меньше
+        else:
+            left = mid + 1  # Нельзя достичь mid, нужно больше
+    
+    optimal_max = left  # Минимальное достижимое максимальное расстояние
+    
+    # Распределяем банкоматы для достижения optimal_max
+    result = []
+    remaining_k = k
+    
+    for length in L:
+        # Сколько банкоматов нужно для этого отрезка в идеале?
+        ideal_atms = (length + optimal_max - 1) // optimal_max - 1
+        
+        # Сколько банкоматов мы реально можем поставить?
+        # Не больше, чем осталось, и не меньше 0
+        actual_atms = min(ideal_atms, remaining_k)
+        
+        # Распределяем банкоматы равномерно
+        if actual_atms > 0:
+            # Разбиваем отрезок на (actual_atms + 1) частей
+            part_length = length / (actual_atms + 1)
+            for i in range(actual_atms + 1):
+                # Округляем до целых, чтобы сумма была равна исходной длине
+                if i < actual_atms:
+                    # Для всех, кроме последнего, округляем вниз
+                    part = int(part_length)
+                else:
+                    # Последняя часть получает остаток
+                    part = length - int(part_length) * actual_atms
+                result.append(part)
+        else:
+            # Не ставим банкоматы в этот промежуток
+            result.append(length)
+        
+        remaining_k -= actual_atms
+    
+    # Если остались лишние банкоматы, распределяем их в самый длинный отрезок
+    while remaining_k > 0:
+        # Находим самый длинный отрезок в текущем результате
+        max_idx = result.index(max(result))
+        max_val = result[max_idx]
+        
+        # Разбиваем его на два
+        half1 = max_val // 2
+        half2 = max_val - half1
+        
+        # Заменяем в списке
+        result.pop(max_idx)
+        result.insert(max_idx, half2)
+        result.insert(max_idx, half1)
+        
+        remaining_k -= 1
+    
+    return result
+
+
+# Тестовый пример из условия
+if __name__ == "__main__":
+    n = 5
+    k = 4
+    L = [100, 180, 50, 45, 150]
+    
+    result = add_atms(n, k, L)
+    print("Исходные расстояния:", L)
+    print("Новые расстояния:", result)
+    print("Максимальное расстояние после добавления:", max(result))
+    print("Сумма новых расстояний равна сумме исходных:", sum(result) == sum(L))
